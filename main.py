@@ -1,9 +1,6 @@
 import random
-from collections import Counter
-from itertools import combinations
-import itertools
-from _ast import In
 from pprint import pprint as pp
+
 
 #nsquadre
 
@@ -77,7 +74,7 @@ totalgames=n-1
 #funzione che crea gli accppiamenti usando l'algoritmo Round Robin https://en.wikipedia.org/wiki/Round-robin_tournament#Scheduling_algorithm
 def make_day(num_teams, day):
      
-    assert not num_teams % 2, "Number of teams must be even!"
+    assert not num_teams % 2, "Il numero delle squadre deve essere pari!"
     # generate list of teams
     #lst = list(range(1, num_teams + 1))
     lst=list_squadre
@@ -91,7 +88,7 @@ def make_day(num_teams, day):
 #funzione che costruisce la matrice degli incontri in cui ogni riga e' un numero di giornata
 def make_schedule(num_teams):
     """
-    Produce a double round-robin schedule
+    Funzione che genera il calendario
     """
     # number of teams must be even
     if num_teams % 2:
@@ -100,16 +97,16 @@ def make_schedule(num_teams):
     schedule = [make_day(num_teams, day) for day in range(num_teams - 1)]
     return schedule 
 
-schedule=make_schedule(num_sq)       
-pp('Ecco la schedule generata col round robin:')
-pp(schedule)
+      
+#pp('Ecco la schedule generata col round robin:')
+#pp(schedule)
 #genero una copia dello scheduling attuale per introdurre una randomizzazione sul punto di partenza della ricerca,
 # in modo da rimanere indipendente dall'ordine di inserimento delle squadre
-schedule_shuf=schedule.copy()
+#schedule_shuf=schedule.copy()
             
-random.shuffle(schedule_shuf)
-pp('Scheduling shuffled:')
-pp(schedule_shuf)
+#random.shuffle(schedule_shuf)
+#pp('Scheduling shuffled:')
+#pp(schedule_shuf)
                                     
 '''mentre avremo una funzione obiettivo da minimizzare che assegna un punteggio ogni qualvolta riscontri che
 una stessa squadra ha giocato in due match consecutivi entrambe le partite in casa o fuori???
@@ -119,7 +116,9 @@ l'idea e' quella di partire da una soluzione ammissibile, assegnarle un punteggi
 Se dopo TOT iterazioni il valore delle rotture non migliora, mi sposto su un altro intorno effettuando la mossa 2 ( swap random di righe)
  e riappplicando la mossa 1 con gli stessi criteri. Nel frattempo mantengo in memoria una lista dei ToT migliori scheduling trovati finora.
  ALla fine restituisco la sol in cima alla lista che sara' la migliore riscontrata
-'''       
+'''
+''' si proveranno anche diverse alternative, ovvero si applichera' la meta euristica proposta sopra ad una soluzione inizialmente perturbata
+ con mossa 2 per rendere la soluzione indipendente dall'algoritmo di costruzione della sol ammissibile, confrontando i risultati finali attraverso grafici'''
 #funzione che scambia una coppia di Teams (Inter,Juve)-->(Juve,Inter)
 
 def swapsquad(listtoswap,pos1,pos2):    
@@ -127,11 +126,11 @@ def swapsquad(listtoswap,pos1,pos2):
         s[pos1],s[pos2]=s[pos2],s[pos1]
 
 #funzione che conta il numero di rotture di ogni sq e le somma
-def contabreaks(schedule,verbose=False):
+def contabreaks(lista1,verbose=False):
     rotture=0
     squadre_rotture = []
     rotture_per_squadre = []
-    for s,s1 in zip(schedule,schedule[1:]):
+    for s,s1 in zip(lista1,lista1[1:]):
         for match in s:
             for match1 in s1:
                 if match[0]==match1[0]:
@@ -150,10 +149,74 @@ def contabreaks(schedule,verbose=False):
         cnt = squadre_rotture.count(sr)
         if [sr,cnt] not in rotture_per_squadre:
             rotture_per_squadre.append([sr,cnt])
-            
     rotture_per_squadre.sort(key=lambda tup: tup[1], reverse=True) 
-    max_rps = rotture_per_squadre[0]
 
-    return rotture, rotture_per_squadre, max_rps                
-print(contabreaks(schedule))    
-print(contabreaks(schedule_shuf,True))
+
+    return rotture, rotture_per_squadre             
+    
+num_rott=100
+nrotture=0
+listtmp=[]
+
+def scambiamaxmin(listasw):
+    listtmp=contabreaks(listasw, verbose=False)
+    if num_rott> listtmp[0]:
+        sqprobl=listtmp[1][0][0]
+        sqmenoprobl=listtmp[1][-1][0]
+        
+        listprob=(sqprobl,sqmenoprobl)
+        listprobinv=(sqmenoprobl,sqprobl)
+        
+        for e in listasw:
+            if listprob in e:
+                e.remove(listprob)
+                e.append(listprobinv)
+        
+    return listasw
+
+soglia=3*(num_sq-2)
+sogliaint=int(soglia)
+
+def metaeurbil():
+        
+    maxcontswapcoppie=100
+    maxcontswaprighe=100
+    
+    listabestsch=[]
+    schedule=make_schedule(n)
+    #parto da soluzione non randomizzata ottenuta col cirle method, da provare i risultati partendo da random 
+    tuplasol=contabreaks(schedule, verbose=False)
+    pp(tuplasol)
+    pp(schedule)
+    #if tuplasol[0] <= sogliaint:
+    
+    sogliaint = tuplasol[0]
+    listabestsch.append([schedule,tuplasol[0], tuplasol[1]])
+    
+    
+    for i in range(maxcontswaprighe):
+        for l in range ( maxcontswapcoppie):
+                
+            listascambiata=scambiamaxmin(schedule)
+            
+            tuplasolmaxmin=contabreaks(listascambiata, verbose=False)
+            if tuplasolmaxmin[0] <= sogliaint:    
+                if [listascambiata,tuplasolmaxmin[0], tuplasolmaxmin[1]] not in listabestsch:
+                    listabestsch.append([listascambiata,tuplasolmaxmin[0], tuplasolmaxmin[1]])
+
+            
+        random.shuffle(listascambiata)
+            
+    listabestsch.sort(key=lambda tup: tup[1], reverse=True)
+    return listabestsch
+            
+#funzione che scambia squadre con max/min rotture
+#conto i break sullo schedule scambiato
+#controllo che la somma delle rotture sia migliore
+#se dopo 10 iterazioni non migliora rispetto al valore soglia(?) cioe' se resta sempre soglia
+#faccio mossa di scambio righe random.shuffle(schedule) e riparto da funz1
+#se ho scambiato 10 volte le righe, mi fermo e prendo la miglior soluzione trovata che sta sottosoglia (si spera)
+                    
+migliorisol=metaeurbil()       
+pp(migliorisol)   
+print("sol trovate", len(migliorisol)) 
