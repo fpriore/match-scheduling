@@ -1,5 +1,6 @@
 import random
 from pprint import pprint as pp
+from random import shuffle
 
 
 #nsquadre
@@ -121,10 +122,10 @@ Se dopo TOT iterazioni il valore delle rotture non migliora, mi sposto su un alt
  con mossa 2 per rendere la soluzione indipendente dall'algoritmo di costruzione della sol ammissibile, confrontando i risultati finali attraverso grafici'''
 #funzione che scambia una coppia di Teams (Inter,Juve)-->(Juve,Inter)
 
-def swapsquad(listtoswap,pos1,pos2):    
-    for s in listtoswap:
-        s[pos1],s[pos2]=s[pos2],s[pos1]
-
+def swapsquad(s,pos1,pos2):    
+    
+    s[pos1],s[pos2]=s[pos2],s[pos1]
+        
 #funzione che conta il numero di rotture di ogni sq e le somma
 def contabreaks(lista1,verbose=False):
     rotture=0
@@ -154,7 +155,7 @@ def contabreaks(lista1,verbose=False):
 
     return rotture, rotture_per_squadre             
     
-num_rott=100
+num_rott=1000
 nrotture=0
 listtmp=[]
 
@@ -173,6 +174,14 @@ def scambiamaxmin(listasw):
                 e.append(listprobinv)
         
     return listasw
+def scambiarandom(listarand):
+    i=random.randint(0, len(listarand)-1)
+    j=random.randint(0, len(listarand[i])-1)
+    listgiusta = (listarand[i][j][0],listarand[i][j][1])
+    listinv = (listarand[i][j][1],listarand[i][j][0])
+    listarand[i].remove(listgiusta)
+    listarand[i].append(listinv)
+    return listarand
 
 soglia=3*(num_sq-2)
 sogliaint=int(soglia)
@@ -190,7 +199,7 @@ def metaeurbil():
     pp(schedule)
     #if tuplasol[0] <= sogliaint:
     
-    sogliaint = tuplasol[0]
+    #sogliaint = tuplasol[0]
     listabestsch.append([schedule,tuplasol[0], tuplasol[1]])
     
     
@@ -216,7 +225,48 @@ def metaeurbil():
 #se dopo 10 iterazioni non migliora rispetto al valore soglia(?) cioe' se resta sempre soglia
 #faccio mossa di scambio righe random.shuffle(schedule) e riparto da funz1
 #se ho scambiato 10 volte le righe, mi fermo e prendo la miglior soluzione trovata che sta sottosoglia (si spera)
-                    
-migliorisol=metaeurbil()       
+                 
+'''migliorisol=metaeurbil()       
 pp(migliorisol)   
-print("sol trovate", len(migliorisol)) 
+print("sol trovate", len(migliorisol)) '''
+
+
+def metaeurrand():
+        
+    maxcontswapr=1500
+    maxcontswaprigher=3000
+    
+    listabestschran=[]
+    scheduler=make_schedule(n)
+    
+    #parto da soluzione non randomizzata ottenuta col cirle method, da provare i risultati partendo da random 
+    tuplasolr=contabreaks(scheduler, verbose=False)
+    
+    pp(scheduler)
+    pp(tuplasolr)
+    if tuplasolr[0] <= sogliaint:
+    
+    #sogliaint = tuplasolr[0]
+        listabestschran.append([scheduler,tuplasolr[0], tuplasolr[1]])
+    
+    
+    for i in range(maxcontswaprigher):
+        for l in range (maxcontswapr):
+                
+            listascambiatar=scambiarandom(scheduler)
+            tuplasolrand=contabreaks(listascambiatar, verbose=False)
+            
+            if tuplasolrand[0] <= sogliaint:    
+                if [listascambiatar,tuplasolrand[0], tuplasolrand[1]] not in listabestschran:
+                    listabestschran.append([listascambiatar,tuplasolrand[0], tuplasolrand[1]])
+
+            
+        random.shuffle(listascambiatar)
+            
+    listabestschran.sort(key=lambda tup: tup[1], reverse=True)
+    return listabestschran
+
+migliorisolrand=metaeurrand()       
+pp(migliorisolrand)   
+print("sol trovate da random", len(migliorisolrand)) 
+
