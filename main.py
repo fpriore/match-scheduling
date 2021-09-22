@@ -107,6 +107,8 @@ def metaeuristica_random(campionato, nomi_squadre, max_swap_coppie,max_swap_righ
     return lista_soluzioni
 
 def soluzione_costo_minimo(lista_soluzioni):
+    if lista_soluzioni == []:
+        return [], 0
     sol_costo_minimo = []
     costo_minimo, rps = conta_breaks(lista_soluzioni[0])
     sol_costo_minimo.append(lista_soluzioni[0])
@@ -203,9 +205,9 @@ def make_schedule(num_teams):
 
 schedule=make_schedule(n)
 
-max_swap_coppie = 10*n
-max_swap_righe = n
-soglia = 0
+max_swap_coppie = n
+max_swap_righe = 10
+soglia = 100
 
 t1 = time()
 lista_sol_bilanciata = metaeuristica_bilanciata(schedule, max_swap_coppie, max_swap_righe, soglia)
